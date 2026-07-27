@@ -50,7 +50,10 @@ The three edge routers form a triangle:
 
 The client is behind R2, and the FTP server is behind R3. 
 
-<img width="1046" height="679" alt="image" src="https://github.com/user-attachments/assets/5b00d025-c19b-4eb4-9406-915eaeb41820" />
+<img width="732" height="430" alt="image" src="https://github.com/user-attachments/assets/70700cc5-ac58-406e-99d0-7c10cb76c20a" />
+
+
+<img width="1041" height="673" alt="image" src="https://github.com/user-attachments/assets/72cf5103-311e-4a11-a4ba-da78185570a2" />
 
 ---
 
@@ -471,6 +474,8 @@ while the client AS also has a shorter direct path to that server AS.
 ## 8. Phase 6 - Build the selective more-specific hijack
 
 So, there's a user on AS65508 (Vindhya Broadband) connecting to a server on the 10.117.117.0/24 network (the server is 10.117.117.10, which we will be identifying further and is the IP address of the br-f085181eb522 interface on the host OS). We can't initially see his traffic because the traffic is sent directly from AS65508 to AS64655 (Sahyadri Data Exchange) (we are on AS64592).
+
+<img width="735" height="489" alt="image" src="https://github.com/user-attachments/assets/622f5d53-3f8b-4714-9534-e9f1c50d26fc" />
 
 The idea is to inject more specific routes for the 10.117.117.0/24 network so the router of Vindhya Broadband (R2) will send traffic to us at r1 (DakshinLink Router). Then once we get the traffic we'll send it back out towards Sahyadri's Router because we already have a BGP route from Sahyadri Router (R3) for the 10.117.117.0/24 network.
 

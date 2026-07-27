@@ -399,6 +399,41 @@ ip -br address
 
 ## 7. Phase 5 - Understand the live BGP topology
 
+### 7.1 What does “BGP hijack” mean here?
+
+R3 legitimately announces the entire FTP subnet as one `/24` route.
+
+R1 later announces two `/25` routes that together cover the same `/24`. A `/25` is more specific than a `/24`. IP forwarding uses the **longest-prefix match**, so R2 sends matching traffic toward R1 even though R2 still has a direct, shorter AS path to R3 for the `/24`.
+
+This is a selective route interception:
+
+- R1 claims a more specific route only to the client-side AS.
+- R2 sends FTP traffic to R1.
+- R1 forwards that traffic to the real R3 network.
+- The service continues working.
+- R1 can inspect the clear-text FTP login.
+
+<img width="1045" height="530" alt="image" src="https://github.com/user-attachments/assets/0bf8f932-0f0b-4268-9074-af0c8f18b340" />
+
+### 7.2 Why advertise two `/25` routes?
+
+A `/24` contains 256 IPv4 addresses. Splitting it once produces two `/25` networks, each containing half of the original address space.
+
+The ticket reveals the protected subnet but not necessarily the exact server address. Advertising both halves ensures that whichever half contains the server is redirected while still using routes more specific than the legitimate `/24`.
+
+### 7.3 Why are `no-export` and the AS3 deny policy required?
+
+R1 must attract the client traffic without teaching R3 to send its own FTP-subnet traffic back toward the attacker.
+
+Two protections are used:
+
+- `set community no-export` tells R2 not to re-advertise the two `/25` routes outside its own AS.
+- `route-map TO-AS3 deny 10` prevents R1 from advertising those `/25` routes directly to R3.
+
+Without these controls, R3 could learn a more-specific route to its own FTP network and forward matching traffic away from the real server. The result could be a routing loop or a black hole.
+
+---
+
 The support ticket identifies a protected FTP **subnet**, but not a
 password. Record the subnet exactly:
 
@@ -431,6 +466,7 @@ export LOCAL_AS="<DakshinLink-AS-from-live-output>"
 export CLIENT_PEER="<Vindhya-neighbor-IP>"
 export SERVER_PEER="<Sahyadri-neighbor-IP>"
 ```
+<img width="844" height="162" alt="image" src="https://github.com/user-attachments/assets/e2e21232-439b-41ff-be86-8bd7425adce3" />
 
 Before exploitation, DakshinLink learns the FTP `/24` from the server AS,
 while the client AS also has a shorter direct path to that server AS.

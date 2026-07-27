@@ -50,10 +50,9 @@ The three edge routers form a triangle:
 
 The client is behind R2, and the FTP server is behind R3. 
 
-<img width="1048" height="441" alt="image" src="https://github.com/user-attachments/assets/c3e2a5aa-3b26-4622-adc5-a11fe01fa196" />
+<img width="732" height="430" alt="image" src="https://github.com/user-attachments/assets/70700cc5-ac58-406e-99d0-7c10cb76c20a" />
 
 <img width="1041" height="673" alt="image" src="https://github.com/user-attachments/assets/72cf5103-311e-4a11-a4ba-da78185570a2" />
-
 
 ---
 

@@ -1,10 +1,9 @@
-e# solve_red.md - NWR-CARRIER-01 - DakshinLink Route Interception
-## Red Team Solution Writeup
+## Red Team Writeup : DakshinLink-BGPPrefixHijacking
 
-**Component:** DakshinLink management portal and FRRouting carrier edge
+**Component:** DakshinLink management portal and carrier Edge Router
 **Attack chain:** SNMP information disclosure -> default credential recovery -> authenticated command injection -> router shell -> selective BGP prefix hijack -> FTP credential interception  
 **MITRE ATT&CK:** T1046, T1018, T1190, T1059, T1016, T1557  
-**Severity:** Critical
+**Severity:** Critical / Insane
 
 ---
 
@@ -560,9 +559,8 @@ export FTP_SERVER_IP="<server-address-from-live-packets>"
 export FTP_USER="<value-after-USER>"
 ssh "${FTP_USER}@${FTP_SERVER_IP}"
 cat archive/network-operations-archive.txt
-
-OR
 ```
+OR
 
 List the FTP files:
 ```bash

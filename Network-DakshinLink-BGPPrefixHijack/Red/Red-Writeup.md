@@ -1,8 +1,7 @@
 e# solve_red.md - NWR-CARRIER-01 - DakshinLink Route Interception
 ## Red Team Solution Writeup
 
-**Component:** Carrier management portal and FRRouting edge  
-**Primary service:** BGP over TCP/179 inside the carrier topology, managed by `frr.service`  
+**Component:** DakshinLink management portal and FRRouting carrier edge
 **Attack chain:** SNMP information disclosure -> default credential recovery -> authenticated command injection -> router shell -> selective BGP prefix hijack -> FTP credential interception  
 **MITRE ATT&CK:** T1046, T1018, T1190, T1059, T1016, T1557  
 **Severity:** Critical
@@ -11,24 +10,38 @@ e# solve_red.md - NWR-CARRIER-01 - DakshinLink Route Interception
 
 ## 1. Overview - What, Why and How
 
-This scenario reproduces the intended learning path Selective BGP Prefix Hijacking with
-modern FRRouting. The public management appliance discloses its dynamically
-generated chassis serial number through a real Net-SNMP agent. The portal's
-default administrator password is that serial number. After authentication,
-the Diagnostics function base64-decodes a user-controlled process name and
-concatenates it into a command executed over SSH on the real edge router.
+DakshinLink Networks operates a network-management portal and an edge router named **R1**. R1 exchanges BGP routes with two other service-provider networks:
 
-The router is one member of a three-AS topology. A client in the second AS
-normally reaches an FTP server in the third AS over their direct peering.
-After gaining control of the first router, the attacker originates two
-more-specific routes only toward the client AS. The routes are tagged
-`no-export` and denied toward the server AS, so traffic is drawn through the
-compromised router without creating a routing loop. The attacker then
-observes the clear-text FTP `USER` and `PASS` commands.
+- **Vindhya Broadband**, whose network contains a recurring VIP FTP client.
+- **Sahyadri Data Exchange**, whose network contains a protected FTP archive.
 
-No deployment IP, public port, internal subnet, ASN, serial number, router
-ID, FTP credential or attacker callback is fixed in the package. Discover
-every value from your assigned instance.
+Under normal conditions, the Vindhya client reaches the Sahyadri FTP server through the direct connection between their two routers. That traffic does **not** pass through DakshinLink R1.
+
+Your initial objective is to compromise DakshinLink's management chain. The public portal exposes a device serial number through weak SNMP configuration. The same serial number is still used as the portal's default administrator password. After login, a diagnostic feature contains command injection.
+
+The diagnostic feature is important because it does not execute the command inside the web container. The portal first connects to **R1 over SSH**, then executes the diagnostic command on R1. When the injected command starts a reverse shell, the reverse shell therefore comes from **the R1 router container**.
+
+Once on R1, your objective changes. You are no longer attacking the web application. You are controlling a real BGP-speaking router positioned beside the normal FTP route. You use BGP to convince Vindhya's router that R1 has a more specific path to the Sahyadri FTP subnet. Vindhya then sends its FTP requests through R1.
+
+R1 still knows the legitimate route onward to Sahyadri, so it forwards the packets instead of dropping them. While the traffic passes through R1, you capture the clear-text FTP control connection and observe its `USER` and `PASS` commands.
+
+In one sentence:
+
+> Compromise the management portal, land on DakshinLink R1, selectively place R1 in the path of a real FTP session, and recover the password from live network traffic without stopping the service.
+
+These 3 service-providers operate their own independent **Autonomous System (AS)**:
+
+| Organisation | Scenario role | Autonomous system role |
+|---|---|---|
+| DakshinLink Networks | The assessed carrier whose R1 router is compromised | AS1, with a runtime-generated ASN |
+| Vindhya Broadband | The provider containing the recurring VIP FTP client | AS2, with a runtime-generated ASN |
+| Sahyadri Data Exchange | The provider containing the protected FTP archive | AS3, with a runtime-generated ASN |
+
+An AS is not a single router. It is a network or group of IP prefixes operated under one routing policy. For this compact scenario, one FRRouting router represents the edge of each AS.
+
+The actual AS numbers are generated during deployment. The labels **AS1**, **AS2**, and **AS3** describe their roles; they are not fixed numeric ASNs.
+<img width="1447" height="321" alt="image" src="https://github.com/user-attachments/assets/5daf8bf9-3be9-4443-8c26-dd62cfeaad5c" />
+<img width="987" height="673" alt="image" src="https://github.com/user-attachments/assets/45bcee93-43dd-47a8-9f26-fd231a3a1dc5" />
 
 ---
 

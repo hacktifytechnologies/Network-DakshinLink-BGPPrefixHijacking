@@ -1,0 +1,23 @@
+frr defaults traditional
+hostname @@R2_HOSTNAME@@
+service integrated-vtysh-config
+log file /var/log/carrier/frr.log informational
+!
+router bgp @@AS2@@
+ bgp router-id @@R2_ROUTER_ID@@
+ bgp log-neighbor-changes
+ no bgp ebgp-requires-policy
+ no bgp network import-check
+ neighbor @@R1_R1R2_IP@@ remote-as @@AS1@@
+ neighbor @@R1_R1R2_IP@@ description @@ORG1@@
+ neighbor @@R1_R1R2_IP@@ timers 3 9
+ neighbor @@R3_R2R3_IP@@ remote-as @@AS3@@
+ neighbor @@R3_R2R3_IP@@ description @@ORG3@@
+ neighbor @@R3_R2R3_IP@@ timers 3 9
+ address-family ipv4 unicast
+  network @@CLIENT_SUBNET@@
+  neighbor @@R1_R1R2_IP@@ activate
+  neighbor @@R3_R2R3_IP@@ activate
+ exit-address-family
+!
+line vty

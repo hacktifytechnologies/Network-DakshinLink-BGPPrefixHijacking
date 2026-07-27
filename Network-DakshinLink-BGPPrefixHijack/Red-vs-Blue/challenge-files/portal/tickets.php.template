@@ -1,0 +1,23 @@
+<?php
+        declare(strict_types=1);
+        require_once __DIR__ . '/common.php';
+        require_auth();
+        audit_event('tickets_view');
+        page_header('Support Tickets');
+        ?>
+        <section class="hero compact">
+          <p class="eyebrow">SERVICE ASSURANCE</p>
+          <h1>Support tickets</h1>
+          <p>Read-only case history from DakshinLink inter-carrier operations.</p>
+        </section>
+        <section class="ticket-list">
+          <article class="ticket"><b>#1</b><div><h3>Customer edge flap</h3><p>Resolved after optical handoff review.</p></div><span>Closed</span></article>
+          <article class="ticket"><b>#2</b><div><h3>Route object mismatch</h3><p>Registry data corrected by provisioning.</p></div><span>Closed</span></article>
+          <article class="ticket"><b>#3</b><div><h3>Monitoring delay</h3><p>Collector polling interval returned to baseline.</p></div><span>Closed</span></article>
+          <article class="ticket"><b>#4</b><div><h3>Transit packet loss</h3><p>No fault reproduced after maintenance window.</p></div><span>Closed</span></article>
+          <article class="ticket"><b>#5</b><div><h3>FTP compatibility</h3><p>Legacy passive-mode issue documented.</p></div><span>Closed</span></article>
+          <article class="ticket priority"><b>#6</b><div><h3>VIP cannot reach operations archive</h3>
+            <p>A Vindhya Broadband VIP periodically connects by clear-text FTP to a protected archive server in <code>@@FTP_SUBNET@@</code>. Direct connectivity through Sahyadri Data Exchange is currently stable. Preserve the path while reviewing routing policy.</p>
+          </div><span>Monitoring</span></article>
+        </section>
+        <?php page_footer(); ?>

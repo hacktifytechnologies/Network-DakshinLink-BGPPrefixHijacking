@@ -1,0 +1,16 @@
+id: Network-CarrierDakshinLinkRouteInterception-Setup
+name: Network-CarrierDakshinLinkRouteInterception-Setup
+description: >
+  Deploys the DakshinLink carrier-routing scenario and its live management,
+  routing, client and protected service components.
+tactic: execution
+technique_id: T1059
+technique_name: Command and Scripting Interpreter
+sub_technique: None
+tag: red
+executors:
+  - name: sh
+    platform: linux
+    command: echo 'Setup Successfully'
+    payloads: []
+    parsers: []

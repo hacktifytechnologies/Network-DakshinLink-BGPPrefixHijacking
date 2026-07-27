@@ -1,0 +1,15 @@
+digraph CarrierTopology {
+  graph [rankdir=LR, bgcolor="white", pad="0.35", nodesep="0.65", ranksep="0.9", fontname="DejaVu Sans"];
+  node [shape=box, style="rounded,filled", fillcolor="#edf5fb", color="#1769aa", fontname="DejaVu Sans", margin="0.16"];
+  edge [color="#5f7184", penwidth=1.6, fontname="DejaVu Sans", fontsize=10];
+  r1 [label="@@ORG1@@\nAS @@AS1@@\n@@R1_HOSTNAME@@"];
+  r2 [label="@@ORG2@@\nAS @@AS2@@\n@@R2_HOSTNAME@@"];
+  r3 [label="@@ORG3@@\nAS @@AS3@@\n@@R3_HOSTNAME@@"];
+  vip [shape=ellipse, fillcolor="#fff8e8", color="#f59e0b", label="VIP client\n@@CLIENT_SUBNET@@"];
+  ftp [shape=ellipse, fillcolor="#fff8e8", color="#f59e0b", label="Operations FTP\n@@FTP_SUBNET@@"];
+  r1 -> r2 [dir=both, label="eBGP"];
+  r1 -> r3 [dir=both, label="eBGP"];
+  r2 -> r3 [dir=both, label="direct eBGP"];
+  vip -> r2 [dir=both];
+  r3 -> ftp [dir=both];
+}

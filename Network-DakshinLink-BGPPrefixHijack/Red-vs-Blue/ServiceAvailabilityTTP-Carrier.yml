@@ -1,0 +1,19 @@
+id: d98ddcef-a906-4bd9-8344-0aa271f516aa
+name: DakshinLink Carrier Routing Availability Check
+description: >
+  Verifies the FRRouting systemd service, TCP/179 inside the active edge
+  router and a live custom probe covering legitimate BGP adjacencies,
+  direct AS2-to-AS3 routing, active route interception, active router shell,
+  portal health and the real FTP workflow.
+tactic: execution
+technique_id: T1059
+technique_name: Command and Scripting Interpreter
+sub_technique: T1059.004
+tag: service-availability
+executors:
+  - name: sh
+    platform: linux
+    command: >-
+      ENV=/opt/network-challenges/carrier-dakshinlink-route-interception/runtime/scoring.env; test -r "$ENV" || { echo "SERVICE_STATUS:DOWN | RUNTIME:MISSING"; exit 1; }; . "$ENV"; PORT=0; docker exec "$R1_CONTAINER" ss -lntH 2>/dev/null | awk '{print $4}' | grep -Eq '(^|:)179$' && PORT=1; SVC="$(systemctl is-active frr.service 2>/dev/null || true)"; SUMMARY="$(docker exec "$R1_CONTAINER" vtysh -c "show bgp ipv4 unicast summary" 2>/dev/null || true)"; PEERS=0; echo "$SUMMARY" | awk -v a="$R2_R1R2_IP" -v b="$R3_R1R3_IP" '$1==a&&$NF~/^[0-9]+$/{x=1} $1==b&&$NF~/^[0-9]+$/{y=1} END{exit(x&&y?0:1)}' && PEERS=1; ROUTE=0; docker exec "$R2_CONTAINER" ip -4 route get "$FTP_SERVER_IP" 2>/dev/null | grep -Fq "via $R3_R2R3_IP" && ROUTE=1; HIJACK=0; RUN="$(docker exec "$R1_CONTAINER" vtysh -c "show running-config" 2>/dev/null || true)"; echo "$RUN" | grep -Fq "network $HIJACK_PREFIX_A" && HIJACK=1; echo "$RUN" | grep -Fq "network $HIJACK_PREFIX_B" && HIJACK=1; SHELL=0; docker exec "$R1_CONTAINER" ps -eo etimes=,args= 2>/dev/null | awk '$1>12 && /sshd: root@notty/{bad=1} END{exit(bad?0:1)}' && SHELL=1; docker exec "$R1_CONTAINER" ps -eo args= 2>/dev/null | grep -E '(bash -i|/dev/tcp/|mkfifo .*(nc|netcat)|socat .*EXEC)' | grep -v grep >/dev/null && SHELL=1; PORTAL=0; curl -fsS --max-time 4 "http://${PUBLIC_IP}:${PUBLIC_HTTP_PORT}/" | grep -q "Operations sign-in" && PORTAL=1; FTP=0; docker exec "$CLIENT_CONTAINER" curl -fsS --max-time 12 --ftp-method nocwd --user "${FTP_USERNAME}:${FTP_PASSWORD}" "ftp://${FTP_SERVER_IP}/archive/network-operations-archive.txt" >/dev/null 2>&1 && FTP=1; if [ "$PORT" -eq 1 ] && [ "$SVC" = active ] && [ "$PEERS" -eq 1 ] && [ "$ROUTE" -eq 1 ] && [ "$HIJACK" -eq 0 ] && [ "$SHELL" -eq 0 ] && [ "$PORTAL" -eq 1 ] && [ "$FTP" -eq 1 ]; then echo "SERVICE_STATUS:UP | PORT_179:UP | SYSTEMD:active | CUSTOM_PROBE:CLEAR"; else [ "$PORT" -eq 1 ] && P=UP || P=DOWN; echo "SERVICE_STATUS:DOWN | PORT_179:$P | SYSTEMD:${SVC:-inactive} | LEGIT_PEERS:$PEERS | DIRECT_PATH:$ROUTE | HIJACK:$HIJACK | ACTIVE_SHELL:$SHELL | PORTAL:$PORTAL | FTP:$FTP"; exit 1; fi
+    payloads: []
+    parsers: []

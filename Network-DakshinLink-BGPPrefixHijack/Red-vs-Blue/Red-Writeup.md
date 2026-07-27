@@ -50,9 +50,10 @@ The three edge routers form a triangle:
 
 The client is behind R2, and the FTP server is behind R3. 
 
-<img width="2720" height="2000" alt="bgp_topology_router_icons_three_as" src="https://github.com/user-attachments/assets/18e8cbcb-17d8-48de-89b7-8620dffce475" />
-
 <img width="1048" height="441" alt="image" src="https://github.com/user-attachments/assets/c3e2a5aa-3b26-4622-adc5-a11fe01fa196" />
+
+<img width="1041" height="673" alt="image" src="https://github.com/user-attachments/assets/72cf5103-311e-4a11-a4ba-da78185570a2" />
+
 
 ---
 

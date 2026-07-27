@@ -40,8 +40,11 @@ These 3 service-providers operate their own independent **Autonomous System (AS)
 An AS is not a single router. It is a network or group of IP prefixes operated under one routing policy. For this compact scenario, one FRRouting router represents the edge of each AS.
 
 The actual AS numbers are generated during deployment. The labels **AS1**, **AS2**, and **AS3** describe their roles; they are not fixed numeric ASNs.
+
 <img width="1447" height="321" alt="image" src="https://github.com/user-attachments/assets/5daf8bf9-3be9-4443-8c26-dd62cfeaad5c" />
-<img width="987" height="673" alt="image" src="https://github.com/user-attachments/assets/45bcee93-43dd-47a8-9f26-fd231a3a1dc5" />
+
+<img width="1046" height="679" alt="image" src="https://github.com/user-attachments/assets/5b00d025-c19b-4eb4-9406-915eaeb41820" />
+
 
 ---
 

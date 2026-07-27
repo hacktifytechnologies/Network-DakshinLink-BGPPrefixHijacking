@@ -145,32 +145,44 @@ snmpwalk -v1 -c public -t 3 -r 1 \
   "udp:${TARGET_IP}:${SNMP_PORT}" \
   .1.3.6.1.2.1.47.1.1.1.1.11
 ```
-# SNMP Serial Number Enumeration Using `snmpwalk`
+The queried OID (`.1.3.6.1.2.1.47.1.1.1.1.11`) corresponds to `entPhysicalSerialNum` in the standard Entity MIB. Security tools commonly query this OID to inventory network hardware and identify devices exposing insecure SNMP configurations.
 
-The specific OID queried (`.1.3.6.1.2.1.47.1.1.1.1.11`) maps to **`entPhysicalSerialNum`** under the standard MIB-II framework. Security tools routinely execute this exact query to inventory network hardware and identify devices exposing insecure or default SNMP configurations.
+Command breakdown:
 
-## Command Breakdown
+- `snmpwalk`
+  
+  A command-line utility that queries an SNMP-enabled device and retrieves an entire tree of Management Information Base (MIB) objects rather than a single value.
 
-### `snmpwalk`
-A command-line utility used to query an SNMP-enabled device for an entire tree of Management Information Base (MIB) objects instead of retrieving a single value.
+- `-v1`
+  
+  Uses SNMP Version 1, an outdated protocol version that does not provide secure authentication or encryption.
 
-### `-v1`
-Specifies the use of **SNMP Version 1**, an outdated protocol version that lacks secure authentication and encryption mechanisms.
+- `-c public`
+  
+  Uses the community string `public`, the most common default read-only community string found on network devices.
 
-### `-c public`
-Uses the community string **`public`**, the most widely known default read-only community string commonly configured on network devices.
+- `-t 3`
+  
+  Sets the timeout to 3 seconds before considering the request unsuccessful.
 
-### `-t 3`
-Sets the timeout period to **3 seconds** before the request is considered unsuccessful.
+- `-r 1`
+  
+  Sets the retry count to 1, meaning the request is retransmitted only once if no response is received.
 
-### `-r 1`
-Configures the retry count to **1**, causing the command to resend the request only once if no response is received.
+- `"udp:${TARGET_IP}:${SNMP_PORT}"`
+  
+  Specifies the destination target using UDP, typically on port 161.
 
-### `udp:${TARGET_IP}:${SNMP_PORT}`
-Specifies the destination target, connecting to the target IP address over UDP on the configured SNMP port (typically **UDP port 161**).
+- `.1.3.6.1.2.1.47.1.1.1.1.11`
+  
+  The Object Identifier (OID) corresponding to `entPhysicalSerialNum`. It returns the serial numbers of physical hardware components on the device, including:
 
-### `.1.3.6.1.2.1.47.1.1.1.1.11`
-The target **Object Identifier (OID)** corresponding to **`entPhysicalSerialNum`**. This OID retrieves the serial numbers of physical hardware components present on the device, including:
+  - Chassis
+  - Line cards
+  - Power supplies
+  - Other physical modules recognised by the Entity MIB
+
+This information is commonly used during asset inventory, hardware identification, and security assessments to detect devices exposing sensitive hardware information through insecure SNMP configurations.
 
 - Chassis
 - Line cards

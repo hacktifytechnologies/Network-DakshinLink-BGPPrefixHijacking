@@ -10,7 +10,7 @@ e# solve_red.md - NWR-CARRIER-01 - DakshinLink Route Interception
 
 ## 1. Overview - What, Why and How
 
-DakshinLink Networks operates a network-management portal and an edge router named **R1**. R1 exchanges BGP routes with two other service-provider networks:
+DakshinLink Networks operates a network-management portal and an edge router named **R1** (DakshinLink's DR). R1 exchanges BGP routes with two other service-provider networks:
 
 - **Vindhya Broadband**, whose network contains a recurring VIP FTP client.
 - **Sahyadri Data Exchange**, whose network contains a protected FTP archive.

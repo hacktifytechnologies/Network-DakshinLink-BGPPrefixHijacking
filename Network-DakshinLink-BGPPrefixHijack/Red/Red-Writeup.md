@@ -58,11 +58,9 @@ The client is behind R2, and the FTP server is behind R3.
 ## 2. Prerequisites
 
 - Kali Linux with `nmap`, `snmpwalk`, `curl`, Burp Suite, `nc`, `tcpdump` and Python 3
-- Reachability to the assigned challenge VM
-- Permission to receive a reverse-shell callback from the challenge VM
-- The supplied `Red-Team-Attack-Script.sh` may be used after manual reconnaissance
+- Reachability to the assigned machine
 
-Set only the platform-supplied address:
+Set only the specifc-supplied address:
 
 ```bash
 export TARGET_IP="<assigned-challenge-vm-ip>"
@@ -74,6 +72,9 @@ export TARGET_IP="<assigned-challenge-vm-ip>"
 
 ```bash
 nmap -Pn -sS -p- --min-rate 1500 "$TARGET_IP"
+
+<img width="850" height="430" alt="image" src="https://github.com/user-attachments/assets/00b38a6d-d6e9-4aab-beec-0b98e0616bf8" />
+
 ```
 
 Identify the HTTP management port from its page title and response:
@@ -81,10 +82,14 @@ Identify the HTTP management port from its page title and response:
 ```bash
 export HTTP_PORT="<discovered-http-port>"
 curl -i "http://${TARGET_IP}:${HTTP_PORT}/"
+
+<img width="1455" height="804" alt="image" src="https://github.com/user-attachments/assets/11f99ceb-3b5d-4ec5-a30c-a18136cb776b" />
+
 ```
 
-The login page displays error codes `45009` and `45010`. Do not guess the
-password yet.
+The login page displays error codes `45009` and `45010`. We do not know the password yet.
+<img width="682" height="589" alt="image" src="https://github.com/user-attachments/assets/d9550390-1e02-4da3-bb85-2321721a94eb" />
+
 
 ### 3.2 Discover the UDP monitoring service
 
@@ -99,6 +104,7 @@ sudo nmap -Pn -sU -sV -p "$SNMP_PORT" "$TARGET_IP"
 To get the banner of running SNMP
 sudo nmap -sU -p 18161 -sV --script=banner "$TARGET_IP"
 ```
+<img width="1080" height="523" alt="image" src="https://github.com/user-attachments/assets/afcee966-2e65-455c-a87e-26cfcca21650" />
 
 ### 3.3 Enumerate web content
 
@@ -106,12 +112,19 @@ sudo nmap -sU -p 18161 -sV --script=banner "$TARGET_IP"
 feroxbuster -u "http://${TARGET_IP}:${HTTP_PORT}/" \
   -w /usr/share/seclists/Discovery/Web-Content/common.txt
 ```
+<img width="1371" height="827" alt="image" src="https://github.com/user-attachments/assets/78b18243-31f9-4748-a49f-c591ed7966fb" />
 
 Review:
 
 - `/doc/`
 - `/debug/`
 - `/tools/remote.php`
+<img width="1470" height="881" alt="image" src="https://github.com/user-attachments/assets/fce6bbdf-249a-4ac5-946f-bad9b58d557c" />
+<img width="1236" height="321" alt="image" src="https://github.com/user-attachments/assets/800407f6-f75e-4aaf-a26c-3fcc2884d499" />
+<img width="1470" height="672" alt="image" src="https://github.com/user-attachments/assets/ead34e5c-5e70-42b8-adcc-d689a4369346" />
+<img width="937" height="337" alt="image" src="https://github.com/user-attachments/assets/fef378c5-145d-4842-9d74-fa5bc8b1d0b6" />
+<img width="1461" height="687" alt="image" src="https://github.com/user-attachments/assets/3d4f9259-c9e1-40ec-b567-ddef4f71bdba" />
+
 
 Download the error-code manual and topology:
 

@@ -37,14 +37,21 @@ These 3 service-providers operate their own independent **Autonomous System (AS)
 | Vindhya Broadband | The provider containing the recurring VIP FTP client | AS2, with a runtime-generated ASN |
 | Sahyadri Data Exchange | The provider containing the protected FTP archive | AS3, with a runtime-generated ASN |
 
-An AS is not a single router. It is a network or group of IP prefixes operated under one routing policy. For this compact scenario, one FRRouting router represents the edge of each AS.
+An AS is not a single router. It is a network or group of IP prefixes operated under one routing policy. 
 
-The actual AS numbers are generated during deployment. The labels **AS1**, **AS2**, and **AS3** describe their roles; they are not fixed numeric ASNs.
+The actual AS numbers are unique for each participant. The labels **AS1**, **AS2**, and **AS3** describe their roles; as they are not fixed numeric ASNs.
 
 <img width="1447" height="321" alt="image" src="https://github.com/user-attachments/assets/5daf8bf9-3be9-4443-8c26-dd62cfeaad5c" />
 
-<img width="1046" height="679" alt="image" src="https://github.com/user-attachments/assets/5b00d025-c19b-4eb4-9406-915eaeb41820" />
+The three edge routers form a triangle:
 
+- R1 has an eBGP peering with R2.
+- R1 has an eBGP peering with R3.
+- R2 also has a direct eBGP peering with R3.
+
+The client is behind R2, and the FTP server is behind R3.
+
+<img width="1046" height="679" alt="image" src="https://github.com/user-attachments/assets/5b00d025-c19b-4eb4-9406-915eaeb41820" />
 
 ---
 

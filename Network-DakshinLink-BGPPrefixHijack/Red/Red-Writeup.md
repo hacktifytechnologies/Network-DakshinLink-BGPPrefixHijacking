@@ -121,10 +121,8 @@ Review:
 - `/tools/remote.php`
 <img width="1470" height="881" alt="image" src="https://github.com/user-attachments/assets/fce6bbdf-249a-4ac5-946f-bad9b58d557c" />
 <img width="1236" height="321" alt="image" src="https://github.com/user-attachments/assets/800407f6-f75e-4aaf-a26c-3fcc2884d499" />
-<img width="1470" height="672" alt="image" src="https://github.com/user-attachments/assets/ead34e5c-5e70-42b8-adcc-d689a4369346" />
 <img width="937" height="337" alt="image" src="https://github.com/user-attachments/assets/fef378c5-145d-4842-9d74-fa5bc8b1d0b6" />
-<img width="1461" height="687" alt="image" src="https://github.com/user-attachments/assets/3d4f9259-c9e1-40ec-b567-ddef4f71bdba" />
-
+<img width="1470" height="672" alt="image" src="https://github.com/user-attachments/assets/ead34e5c-5e70-42b8-adcc-d689a4369346" />
 
 Download the error-code manual and topology:
 
@@ -132,6 +130,7 @@ Download the error-code manual and topology:
 curl -o error_codes.pdf "http://${TARGET_IP}:${HTTP_PORT}/doc/error_codes.pdf"
 curl -o diagram_for_tac.png "http://${TARGET_IP}:${HTTP_PORT}/doc/diagram_for_tac.png"
 ```
+<img width="1461" height="687" alt="image" src="https://github.com/user-attachments/assets/3d4f9259-c9e1-40ec-b567-ddef4f71bdba" />
 
 Error `45009` explains that the default administrator password is the
 device chassis serial. The topology image identifies the three live ASNs
@@ -146,6 +145,39 @@ snmpwalk -v1 -c public -t 3 -r 1 \
   "udp:${TARGET_IP}:${SNMP_PORT}" \
   .1.3.6.1.2.1.47.1.1.1.1.11
 ```
+# SNMP Serial Number Enumeration Using `snmpwalk`
+
+The specific OID queried (`.1.3.6.1.2.1.47.1.1.1.1.11`) maps to **`entPhysicalSerialNum`** under the standard MIB-II framework. Security tools routinely execute this exact query to inventory network hardware and identify devices exposing insecure or default SNMP configurations.
+
+## Command Breakdown
+
+### `snmpwalk`
+A command-line utility used to query an SNMP-enabled device for an entire tree of Management Information Base (MIB) objects instead of retrieving a single value.
+
+### `-v1`
+Specifies the use of **SNMP Version 1**, an outdated protocol version that lacks secure authentication and encryption mechanisms.
+
+### `-c public`
+Uses the community string **`public`**, the most widely known default read-only community string commonly configured on network devices.
+
+### `-t 3`
+Sets the timeout period to **3 seconds** before the request is considered unsuccessful.
+
+### `-r 1`
+Configures the retry count to **1**, causing the command to resend the request only once if no response is received.
+
+### `udp:${TARGET_IP}:${SNMP_PORT}`
+Specifies the destination target, connecting to the target IP address over UDP on the configured SNMP port (typically **UDP port 161**).
+
+### `.1.3.6.1.2.1.47.1.1.1.1.11`
+The target **Object Identifier (OID)** corresponding to **`entPhysicalSerialNum`**. This OID retrieves the serial numbers of physical hardware components present on the device, including:
+
+- Chassis
+- Line cards
+- Power supplies
+- Other physical modules recognised by the Entity MIB
+
+This information is commonly used during asset inventory, hardware identification, and security assessments to detect devices exposing sensitive hardware information through insecure SNMP configurations.
 
 Extract the live serial:
 

@@ -52,7 +52,7 @@ The client is behind R2, and the FTP server is behind R3.
 
 <img width="2720" height="2000" alt="bgp_topology_router_icons_three_as" src="https://github.com/user-attachments/assets/18e8cbcb-17d8-48de-89b7-8620dffce475" />
 
-<img width="1046" height="679" alt="image" src="https://github.com/user-attachments/assets/5b00d025-c19b-4eb4-9406-915eaeb41820" />
+<img width="1048" height="441" alt="image" src="https://github.com/user-attachments/assets/c3e2a5aa-3b26-4622-adc5-a11fe01fa196" />
 
 ---
 

@@ -49,7 +49,7 @@ The three edge routers form a triangle:
 - R1 has an eBGP peering with R3.
 - R2 also has a direct eBGP peering with R3.
 
-The client is behind R2, and the FTP server is behind R3.
+The client is behind R2, and the FTP server is behind R3. 
 
 <img width="1046" height="679" alt="image" src="https://github.com/user-attachments/assets/5b00d025-c19b-4eb4-9406-915eaeb41820" />
 
